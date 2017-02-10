@@ -1,0 +1,18 @@
+{
+    "name": "BugRequest",
+    "description": "Sniffer vulnerabilities in http request",
+    "version": "0.1",
+    "background": {
+        "page": "bg/index.html"
+    },
+    "icons": {
+        "128":"img/icon.png"
+    },
+   "browser_action": {
+      "default_icon": "img/icon.png",
+      "default_title": "BugRequest"
+   },
+    "manifest_version": 2,
+    "options_page": "options/index.html",
+    "permissions": [ "http://*/*", "https://*/*", "webRequest", "webRequestBlocking","tabs"]
+}
