@@ -2,14 +2,73 @@
 chrome.browserAction.onClicked.addListener(function(tab) {
     window.open("/options/index.html");
 });
+
+
+localStorage.setItem("origfilter",`(function (log) {
+    return false;//true for drop
+})
+/*
+use param log
+log = {
+    "url": [
+        "http://www.baidu.com/",
+        "https://www.baidu.com/"
+    ],
+    "statusCode": [
+        307,
+        200
+    ],
+    "redirect": [
+        {
+            "statusCode": 307,
+            "statusLine": "HTTP/1.1 307 Internal Redirect",
+            "responseHeaders": [
+                "Location: https://www.baidu.com/",
+                "Non-Authoritative-Reason: HSTS"
+            ]
+        }
+    ],
+    "method": "GET",
+    "requestHeaders": [
+        {
+            "name": "User-Agent",
+            "value": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36"
+        },
+        {
+            "name": "Accept-Encoding",
+            "value": "gzip, deflate, sdch, br"
+        },
+        {
+            "name": "Accept-Language",
+            "value": "zh-CN,zh;q=0.8,en;q=0.6"
+        }
+    ],
+    "statusLine": "HTTP/1.1 200 OK",
+    "responseHeaders": [
+        {
+            "name": "Content-Type",
+            "value": "text/html;charset=utf-8"
+        },
+        {
+            "name": "Content-Encoding",
+            "value": "gzip"
+        },
+    ]
+}
+*/`)
+if(localStorage.getItem('filter') == null){
+    localStorage.setItem('filter',localStorage.getItem('origfilter'));
+}
+
+var filter = eval(localStorage.getItem('filter'));
 //配置indexedDB存储
 // Dexie.debug = true
-
 var db;
 function opendb() {
     db = new Dexie("BugRequest");
-    db.version(1).stores({
-        httplog: "++id,*url,method,*requestHeaders,requestBody,*statusCode,statusLine,*responseHeaders,*redirect,*host,*querykey",
+    db.version(2).stores({
+        httplog: "++id,*url,method,*requestHeaders,requestBody,*statusCode,statusLine,*responseHeaders,*redirect,*host,*querykey,pathname,urlhash",
+        savelog: "++id,*url,method,*requestHeaders,requestBody,*statusCode,statusLine,*responseHeaders,*redirect,*host,*querykey,pathname,urlhash"
     });
     db.open();
 }
@@ -79,22 +138,44 @@ function handleEvent(details) {
         http[details.requestId]['statusLine'] = details.statusLine;
         http[details.requestId]['responseHeaders'] = details.responseHeaders;
     
-        //已经完成请求，记录并删除
+        
         var u = parseURL(http[details.requestId]["url"]);
-        db.httplog.add({
-            url: http[details.requestId]["url"],
-            method: http[details.requestId]["method"],
-            requestHeaders: Headers2Array(http[details.requestId]["requestHeaders"]),
-            requestBody: http[details.requestId].hasOwnProperty("requestBody") ? formatPost(http[details.requestId]["requestBody"]) : "",
-            statusCode: http[details.requestId]["statusCode"],
-            statusLine: http[details.requestId]["statusLine"],
-            responseHeaders: Headers2Array(http[details.requestId]["responseHeaders"]),
-            redirect : http[details.requestId]['redirect'],
-            host : u.host.split("."),
-            querykey: u.querykey
+        //过滤
+        var drop = false; 
+        if(this.filter){
+            drop = this.filter(http[details.requestId]);
+        }
+        if(drop == false){
+            //去重
+            db.httplog.where('urlhash').equals(urlhash(u)).count(function (count) {
+                if(count==0){
+                    //入库
+                    db.httplog.add({
+                        url: http[details.requestId]["url"],
+                        method: http[details.requestId]["method"],
+                        requestHeaders: Headers2Array(http[details.requestId]["requestHeaders"]),
+                        requestBody: http[details.requestId].hasOwnProperty("requestBody") ? formatPost(http[details.requestId]["requestBody"]) : "",
+                        statusCode: http[details.requestId]["statusCode"],
+                        statusLine: http[details.requestId]["statusLine"],
+                        responseHeaders: Headers2Array(http[details.requestId]["responseHeaders"]),
+                        redirect : http[details.requestId]['redirect'],
+                        host : u.host.split("."),
+                        querykey: u.querykey,
+                        pathname: u.pathname,
+                        urlhash: urlhash(u)
 
-        });
-        delete http[details.requestId]
+                    });
+
+                }
+                delete http[details.requestId];
+            })
+        }else{
+            delete http[details.requestId];
+        }
+
+        
+        
+
     
     }
     if (details.requestBody) {
@@ -103,12 +184,13 @@ function handleEvent(details) {
 
 }
 
+
+function urlhash(u) {
+    return u.host + "|" + u.pathname + "|" + u.querykey.join("|");
+}
+
 function formatPost(postData) {
-    var text = "";
-    for (name in postData) {
-        text += name + ": " + postData[name] + "\n";
-    }
-    return text;
+    return decodeURIComponent(String.fromCharCode.apply(null,new Uint8Array(postData.raw[0].bytes)));
 }
 
 function Headers2Array(headers) {
@@ -123,7 +205,8 @@ function parseURL(url) {
     var a = document.createElement('a');   
     a.href = url;   
     return {   
-        host: a.hostname,    
+        host: a.hostname,
+        pathname : a.pathname,    
         querykey: (function(){   
             var ret = [],   
             seg = a.search.replace(/^\?/,'').split('&'),   

@@ -36,11 +36,16 @@
                                 </li>
                                 <li ng-class="{'active':tab==2}">
                                     <a href="#" ng-click="tab=2">
-                                        Rule
+                                        Filter
                                     </a>
                                 </li>
                                 <li ng-class="{'active':tab==3}">
-                                    <a href="#" ng-click="tab=3;info=''">
+                                    <a href="#" ng-click="tab=3">
+                                        Rule
+                                    </a>
+                                </li>
+                                <li ng-class="{'active':tab==4}">
+                                    <a href="#" ng-click="tab=4;info=''">
                                         Option
                                     </a>
                                 </li>
@@ -54,9 +59,19 @@
             <!-- rule -->
             <div class="row">
                 <div class="col-md-12">
-                    <div class="col-md-2">
+                    <div class="col-md-1">
+                        <select class="form-control"  ng-model="table" ng-options="x for (x, y) in tables" ng-change="flush(1)">
+                        </select>
+                    </div>
+                    <div class="col-md-1">
                         <select class="form-control"  ng-model="selectedfn" ng-options="x for (x, y) in rules" ng-change="flush(1)">
                         </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <input type="text" class="form-control" placeholder="www.baidu.com" ng-change="flush(1)" ng-model="search">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -67,10 +82,11 @@
                     <div class="col-md-12">
                         <ul class="pagination">
 
-                            <li ng-repeat="x in pagerange">
+                            <li ng-repeat="x in pagerange" ng-class="{'active':x == page}">
                                 <a href="" ng-click="flush(x)" ng-bind="x"></a>
                             </li>
-
+                            <span class="badge" ng-bind="count"></span>
+                            <button type="button" class="btn btn-danger" ng-click="delnow()">del</button>
                         </ul>
                     </div>
                 </div>
@@ -97,7 +113,9 @@
                             <tbody>
                                 <tr ng-repeat="log in logs">
                                     <td style="width:20%;word-break:break-all;">
-                                        <a href={{u}} ng-bind="u" target="_blank" ng-repeat="u in log.url" style="display: block;"></a>
+                                        <a href={{u}} ng-bind="u" target="_blank" ng-repeat="u in log.url" style="display: block;"></a><br>
+                                        <button type="button" class="btn btn-success" ng-click="saveitem(log)" ng-hide="nosave">save</button>
+                                        <button type="button" class="btn btn-danger" ng-click="delitem(log)">del</button>
                                     </td>
                                     <td style="width:40%">
                                         <textarea readonly="readonly" rows="3" style="width:100%;height:150px;overflow-y:visible;resize:none;" ng-bind="log.request">
@@ -120,10 +138,10 @@
                     <div class="col-md-12">
                         <ul class="pagination">
 
-                            <li ng-repeat="x in pagerange">
+                            <li ng-repeat="x in pagerange"  ng-class="{'active':x == page}">
                                 <a href="" ng-click="flush(x)" ng-bind="x"></a>
                             </li>
-
+                            <span class="badge" ng-bind="count"></span>
                         </ul>
                     </div>
                 </div>
@@ -131,25 +149,35 @@
             <!-- page end -->
         </div>
         <div ng-show="tab==2">
-            <!-- rule -->
+            <!-- option -->
             <div class="row">
                 <div class="col-md-12">
-                    <div class="col-md-2">
-                        <select class="form-control"  ng-model="selectedfn" ng-options="x for (x, y) in rules">
-                        </select>
-                    </div>
-                    <div class="col-md-10">
-                        <textarea ng-bind="selectedfn" readonly="readonly" style="width:100%;height:500px;overflow-y:visible;resize:none;"></textarea>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-danger" ng-click="save()">save filter</button>
+                        <button type="button" class="btn btn-danger" ng-click="reset()">reset</button>
+                        <textarea ng-model="filterfn" style="width:100%;height:500px;overflow-y:visible;resize:none;"></textarea>
                     </div>                    
                 </div>
             </div>
         </div>
         <div ng-show="tab==3">
+            <!-- rule -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="col-md-6">
+                        <select class="form-control"  ng-model="selectedfn" ng-options="x for (x, y) in rules" ng-change="flush(1)">
+                        </select>
+                        <textarea ng-bind="selectedfn" readonly="readonly" style="width:100%;height:500px;overflow-y:visible;resize:none;"></textarea>
+                    </div>                  
+                </div>
+            </div>
+        </div>
+        <div ng-show="tab==4">
             <!-- options -->
             <div class="row">
                 <div class="col-md-12">
                 <div class="col-md-12">
-                    <button type="button" class="btn btn-danger" ng-click="clear()" ng-disabled="info=='wait'">clearlog</button>
+                    <button type="button" class="btn btn-danger" ng-click="clear()" ng-disabled="info=='wait'">reset database</button>
                     <span class="label label-default" ng-bind="info"></span>
                 </div>
                 </div>

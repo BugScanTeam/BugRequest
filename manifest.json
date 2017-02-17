@@ -1,7 +1,7 @@
 {
-    "name": "BugRequest",
+    "name": "Bug Request",
     "description": "Sniffer vulnerabilities in http request",
-    "version": "0.1",
+    "version": "0.2",
     "background": {
         "page": "bg/index.html"
     },
@@ -13,6 +13,7 @@
       "default_title": "BugRequest"
    },
     "manifest_version": 2,
+    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
     "options_page": "options/index.html",
     "permissions": [ "http://*/*", "https://*/*", "webRequest", "webRequestBlocking","tabs"]
 }
